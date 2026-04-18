@@ -60,6 +60,7 @@ export default function CommentMapPage() {
   const [nodes, setNodes] = useState<SimNode[]>([]);
   const [isSimulating, setIsSimulating] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filteredComments = useMemo(() => {
     let result = comments;
@@ -82,18 +83,16 @@ export default function CommentMapPage() {
         comment: c,
         clusterId: c.clusterId,
         leverageScore: c.leverageScore,
-        radius: Math.max(20, Math.min(48, c.leverageScore * 0.48)),
+        radius: Math.max(24, Math.min(56, c.leverageScore * 0.56)),
         x: center.x + (Math.random() - 0.5) * 80,
         y: center.y + (Math.random() - 0.5) * 80,
       };
     });
 
     const l: SimLink[] = [];
-    // Links from each comment to its cluster center (virtual anchor)
     filteredComments.forEach(c => {
       const cluster = clusters.find(cl => cl.id === c.clusterId);
       if (!cluster) return;
-      // Links between comments in the same cluster
       const siblings = filteredComments.filter(s => s.clusterId === c.clusterId && s.id !== c.id);
       siblings.forEach(s => {
         if (c.id < s.id) {
@@ -121,14 +120,13 @@ export default function CommentMapPage() {
     setIsSimulating(true);
     const simNodes = initialNodes.map(n => ({ ...n }));
 
-    // Cluster center force - pull nodes toward their cluster centroid
     const clusterXForces = forceX<SimNode>((d) => getClusterCenter(d.clusterId, clusters).x).strength(0.15);
     const clusterYForces = forceY<SimNode>((d) => getClusterCenter(d.clusterId, clusters).y).strength(0.15);
 
     const simulation = forceSimulation<SimNode>(simNodes)
       .force('charge', forceManyBody<SimNode>().strength(d => -d.leverageScore * 1.5 - 80))
       .force('center', forceCenter(CENTER_X, CENTER_Y).strength(0.05))
-      .force('collision', forceCollide<SimNode>().radius(d => d.radius + 10).strength(0.8))
+      .force('collision', forceCollide<SimNode>().radius(d => d.radius + 12).strength(0.8))
       .force('clusterX', clusterXForces)
       .force('clusterY', clusterYForces)
       .force('link', forceLink<SimNode, SimLink>(links.map(l => ({ ...l })))
@@ -156,11 +154,9 @@ export default function CommentMapPage() {
     if (!hovered) return new Set<string>([hoveredCommentId]);
     const related = new Set<string>();
     related.add(hoveredCommentId);
-    // Same cluster
     filteredComments.forEach(c => {
       if (c.clusterId === hovered.clusterId) related.add(c.id);
     });
-    // Same intent
     filteredComments.forEach(c => {
       if (c.intent.primary === hovered.intent.primary) related.add(c.id);
     });
@@ -199,6 +195,28 @@ export default function CommentMapPage() {
     setZoom(prev => Math.max(0.4, Math.min(3, prev - delta * prev)));
   }, []);
 
+  // Debounced hover with generous delay to prevent flickering
+  const handleNodeHover = useCallback((id: string | null) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    if (id === null) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredCommentId(null);
+      }, 150);
+    } else {
+      setHoveredCommentId(id);
+    }
+  }, []);
+
+  // Cleanup hover timeout
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
   return (
     <AppShell>
       <PageHeader
@@ -227,12 +245,12 @@ export default function CommentMapPage() {
               {/* Toolbar */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">意图筛选</span>
+                  <span className="text-sm text-muted-foreground">意图筛选</span>
                   {Object.entries(intentLabels).map(([key, label]) => (
                     <Badge
                       key={key}
                       variant={intentFilter === key ? 'default' : 'outline'}
-                      className="cursor-pointer text-xs transition-all"
+                      className="cursor-pointer text-sm transition-all"
                       style={intentFilter === key ? { backgroundColor: intentColors[key], borderColor: intentColors[key] } : { borderColor: intentColors[key] + '44', color: intentColors[key] }}
                       onClick={() => setIntentFilter(intentFilter === key ? null : key)}
                     >
@@ -240,21 +258,21 @@ export default function CommentMapPage() {
                     </Badge>
                   ))}
                   {(intentFilter || clusterFilter) && (
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => { setIntentFilter(null); setClusterFilter(null); }}>
-                      <X className="w-3 h-3" /> 清除筛选
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-sm gap-1" onClick={() => { setIntentFilter(null); setClusterFilter(null); }}>
+                      <X className="w-3.5 h-3.5" /> 清除筛选
                     </Button>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.max(0.4, zoom - 0.2))}>
-                    <ZoomOut className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setZoom(Math.max(0.4, zoom - 0.2))}>
+                    <ZoomOut className="w-4 h-4" />
                   </Button>
-                  <span className="text-xs text-muted-foreground w-10 text-center">{Math.round(zoom * 100)}%</span>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(Math.min(2.5, zoom + 0.2))}>
-                    <ZoomIn className="w-3.5 h-3.5" />
+                  <span className="text-sm text-muted-foreground w-12 text-center">{Math.round(zoom * 100)}%</span>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setZoom(Math.min(2.5, zoom + 0.2))}>
+                    <ZoomIn className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>
-                    <Maximize2 className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>
+                    <Maximize2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -276,40 +294,40 @@ export default function CommentMapPage() {
                   style={{ transition: isDragging ? 'none' : 'viewBox 0.1s ease-out' }}
                 >
                   <defs>
-                    {/* Glow filters */}
+                    {/* Glow filters with stronger intensity */}
                     <filter id="glowCyan" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feFlood floodColor="#52E5FF" floodOpacity="0.3" />
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feFlood floodColor="#52E5FF" floodOpacity="0.5" />
                       <feComposite in2="blur" operator="in" />
                       <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowPurple" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feFlood floodColor="#7B61FF" floodOpacity="0.3" />
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feFlood floodColor="#7B61FF" floodOpacity="0.5" />
                       <feComposite in2="blur" operator="in" />
                       <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowPink" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feFlood floodColor="#FF4FD8" floodOpacity="0.3" />
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feFlood floodColor="#FF4FD8" floodOpacity="0.5" />
                       <feComposite in2="blur" operator="in" />
                       <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowGreen" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feFlood floodColor="#4ADE80" floodOpacity="0.3" />
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feFlood floodColor="#4ADE80" floodOpacity="0.5" />
                       <feComposite in2="blur" operator="in" />
                       <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowOrange" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feFlood floodColor="#FFB347" floodOpacity="0.3" />
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feFlood floodColor="#FFB347" floodOpacity="0.5" />
                       <feComposite in2="blur" operator="in" />
                       <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                     <filter id="glowPinkSoft" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feFlood floodColor="#F472B6" floodOpacity="0.3" />
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feFlood floodColor="#F472B6" floodOpacity="0.5" />
                       <feComposite in2="blur" operator="in" />
                       <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
@@ -317,8 +335,8 @@ export default function CommentMapPage() {
                     {/* Radial gradients for cluster regions */}
                     {filteredClusters.map(cluster => (
                       <radialGradient key={cluster.id} id={`clusterBg-${cluster.id}`}>
-                        <stop offset="0%" stopColor={cluster.color} stopOpacity="0.08" />
-                        <stop offset="70%" stopColor={cluster.color} stopOpacity="0.02" />
+                        <stop offset="0%" stopColor={cluster.color} stopOpacity="0.12" />
+                        <stop offset="70%" stopColor={cluster.color} stopOpacity="0.04" />
                         <stop offset="100%" stopColor={cluster.color} stopOpacity="0" />
                       </radialGradient>
                     ))}
@@ -355,10 +373,10 @@ export default function CommentMapPage() {
                         />
                         <text
                           x={center.x}
-                          y={center.y - maxDist + 16}
+                          y={center.y - maxDist + 20}
                           textAnchor="middle"
-                          className="fill-muted-foreground text-xs font-medium select-none pointer-events-none"
-                          opacity={0.7}
+                          className="fill-muted-foreground text-sm font-semibold select-none pointer-events-none"
+                          opacity={0.8}
                         >
                           {cluster.label}
                         </text>
@@ -383,15 +401,15 @@ export default function CommentMapPage() {
                         x2={target.x}
                         y2={target.y}
                         stroke={link.clusterColor}
-                        strokeWidth={isHighlighted ? 1.5 : 0.5}
-                        strokeOpacity={dimmed ? 0.03 : isHighlighted ? 0.4 : 0.08}
+                        strokeWidth={isHighlighted ? 2.5 : 0.8}
+                        strokeOpacity={dimmed ? 0.03 : isHighlighted ? 0.5 : 0.1}
                         className="transition-all duration-300"
                       />
                     );
                   })}
 
                   {/* Nodes */}
-                  {nodes.map(node => {
+                  {nodes.map((node, index) => {
                     const c = node.comment;
                     const intentColor = intentColors[c.intent.primary];
                     const isHovered = hoveredCommentId === node.id;
@@ -413,53 +431,77 @@ export default function CommentMapPage() {
                       <g
                         key={node.id}
                         className="cursor-pointer"
-                        onMouseEnter={() => setHoveredCommentId(node.id)}
-                        onMouseLeave={() => setHoveredCommentId(null)}
+                        onMouseEnter={() => handleNodeHover(node.id)}
+                        onMouseLeave={() => handleNodeHover(null)}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedComment(selectedComment?.id === node.id ? null : c);
                         }}
-                        opacity={dimmed ? 0.15 : 1}
+                        opacity={dimmed ? 0.12 : 1}
                         style={{ transition: 'opacity 0.3s' }}
                       >
-                        {/* Outer pulse ring for hovered/selected */}
+                        {/* Outer pulse ring for hovered/selected - dual ring animation */}
                         {(isHovered || isSelected) && (
-                          <circle
-                            cx={node.x}
-                            cy={node.y}
-                            r={node.radius + 8}
-                            fill="none"
-                            stroke={intentColor}
-                            strokeWidth={1}
-                            strokeOpacity={0.4}
-                          >
-                            <animate
-                              attributeName="r"
-                              values={`${node.radius + 4};${node.radius + 14};${node.radius + 4}`}
-                              dur="2s"
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="stroke-opacity"
-                              values="0.4;0.1;0.4"
-                              dur="2s"
-                              repeatCount="indefinite"
-                            />
-                          </circle>
+                          <>
+                            <circle
+                              cx={node.x}
+                              cy={node.y}
+                              r={node.radius + 8}
+                              fill="none"
+                              stroke={intentColor}
+                              strokeWidth={1.5}
+                              strokeOpacity={0.3}
+                            >
+                              <animate
+                                attributeName="r"
+                                values={`${node.radius + 6};${node.radius + 18};${node.radius + 6}`}
+                                dur="2s"
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="stroke-opacity"
+                                values="0.4;0.05;0.4"
+                                dur="2s"
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                            <circle
+                              cx={node.x}
+                              cy={node.y}
+                              r={node.radius + 4}
+                              fill="none"
+                              stroke={intentColor}
+                              strokeWidth={0.8}
+                              strokeOpacity={0.2}
+                            >
+                              <animate
+                                attributeName="r"
+                                values={`${node.radius + 4};${node.radius + 24};${node.radius + 4}`}
+                                dur="2.5s"
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="stroke-opacity"
+                                values="0.2;0;0.2"
+                                dur="2.5s"
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                          </>
                         )}
 
                         {/* Main circle */}
                         <circle
                           cx={node.x}
                           cy={node.y}
-                          r={isHovered ? node.radius + 3 : node.radius}
+                          r={isHovered ? node.radius + 5 : node.radius}
                           fill={intentColor}
-                          fillOpacity={isSelected ? 0.35 : isHovered ? 0.3 : isRelated && hoveredCommentId ? 0.25 : 0.12}
+                          fillOpacity={isSelected ? 0.4 : isHovered ? 0.35 : isRelated && hoveredCommentId ? 0.25 : 0.15}
                           stroke={intentColor}
-                          strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 0.8}
-                          strokeOpacity={isSelected ? 1 : isHovered ? 0.9 : 0.4}
+                          strokeWidth={isSelected ? 3 : isHovered ? 2.5 : 1}
+                          strokeOpacity={isSelected ? 1 : isHovered ? 1 : 0.5}
                           filter={isHovered || isSelected ? (glowFilterMap[intentColor] || 'url(#glowPurple)') : undefined}
-                          style={{ transition: 'r 0.2s, fill-opacity 0.3s, stroke-opacity 0.3s' }}
+                          style={{ transition: 'r 0.25s ease-out, fill-opacity 0.3s, stroke-opacity 0.3s, stroke-width 0.2s' }}
                         />
 
                         {/* Leverage score label */}
@@ -468,8 +510,10 @@ export default function CommentMapPage() {
                           y={node.y}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          className="fill-foreground text-[11px] font-bold pointer-events-none select-none"
-                          opacity={isHovered || isSelected ? 1 : 0.7}
+                          className="fill-foreground font-bold pointer-events-none select-none"
+                          fontSize={isHovered || isSelected ? 14 : 12}
+                          opacity={isHovered || isSelected ? 1 : 0.75}
+                          style={{ transition: 'font-size 0.2s ease-out, opacity 0.2s' }}
                         >
                           {node.leverageScore}
                         </text>
@@ -478,7 +522,7 @@ export default function CommentMapPage() {
                   })}
                 </svg>
 
-                {/* Floating tooltip */}
+                {/* Floating tooltip - improved with larger hit area */}
                 <AnimatePresence>
                   {hoveredCommentId && (() => {
                     const c = filteredComments.find(cm => cm.id === hoveredCommentId);
@@ -486,29 +530,35 @@ export default function CommentMapPage() {
                     const cluster = clusters.find(cl => cl.id === c.clusterId);
                     return (
                       <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 12 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute bottom-4 left-4 right-4 glass-card rounded-2xl p-4 pointer-events-none"
+                        initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className="absolute bottom-4 left-4 right-4 glass-card rounded-2xl p-5"
+                        onMouseEnter={() => handleNodeHover(hoveredCommentId)}
+                        onMouseLeave={() => handleNodeHover(null)}
                       >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-3 mb-2.5">
                           <span
-                            className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            className="text-sm px-2.5 py-1 rounded-full font-medium"
                             style={{ backgroundColor: intentColors[c.intent.primary] + '22', color: intentColors[c.intent.primary] }}
                           >
                             {intentLabels[c.intent.primary]}
                           </span>
-                          <span className="text-xs text-brand-cyan font-medium">杠杆分 {c.leverageScore}</span>
+                          <span className="text-sm text-brand-cyan font-semibold">杠杆分 {c.leverageScore}</span>
                           {cluster && (
-                            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cluster.color }} />
+                            <span className="text-sm text-muted-foreground ml-auto flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cluster.color }} />
                               {cluster.label}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-foreground mb-1.5">{c.content}</p>
-                        <p className="text-xs text-muted-foreground italic">{c.intent.description}</p>
+                        <p className="text-sm text-foreground leading-relaxed mb-2">{c.content}</p>
+                        <p className="text-sm text-muted-foreground italic">{c.intent.description}</p>
+                        <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><Heart className="w-4 h-4" />{c.likes}</span>
+                          <span className="flex items-center gap-1.5"><MessageCircle className="w-4 h-4" />{c.replyCount}</span>
+                        </div>
                       </motion.div>
                     );
                   })()}
@@ -519,10 +569,10 @@ export default function CommentMapPage() {
         </div>
 
         {/* Sidebar Detail Panel */}
-        <div className="w-[340px]">
+        <div className="w-[380px]">
           <GradientCard className="h-full">
-            <div className="p-4 h-full flex flex-col">
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+            <div className="p-5 h-full flex flex-col">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                 <Filter className="w-4 h-4 text-brand-purple" />
                 评论详情
               </h3>
@@ -530,70 +580,71 @@ export default function CommentMapPage() {
               {selectedComment ? (
                 <ScrollArea className="flex-1">
                   <motion.div
-                    initial={{ opacity: 0, x: 10 }}
+                    initial={{ opacity: 0, x: 12 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="space-y-4"
                   >
                     <div className="flex items-center justify-between">
-                      <LeverageScoreRing score={selectedComment.leverageScore} size={56} />
+                      <LeverageScoreRing score={selectedComment.leverageScore} size={60} />
                       <div className="text-right">
                         <Badge
+                          className="text-sm"
                           style={{ backgroundColor: intentColors[selectedComment.intent.primary] + '22', color: intentColors[selectedComment.intent.primary] }}
                         >
                           {intentLabels[selectedComment.intent.primary]}
                         </Badge>
-                        <div className="mt-1 text-xs text-muted-foreground">
+                        <div className="mt-1.5 text-sm text-muted-foreground">
                           置信度 {Math.round(selectedComment.intent.confidence * 100)}%
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-2xl bg-secondary/30 border border-border/30">
+                    <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/30">
                       <p className="text-sm leading-relaxed">{selectedComment.content}</p>
                     </div>
 
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">意图解析</h4>
-                      <p className="text-xs text-foreground/80 leading-relaxed">{selectedComment.intent.description}</p>
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">意图解析</h4>
+                      <p className="text-sm text-foreground/80 leading-relaxed">{selectedComment.intent.description}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-3 rounded-xl bg-secondary/30 text-center">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 rounded-xl bg-secondary/30 text-center">
                         <div className="text-lg font-bold">{selectedComment.likes}</div>
-                        <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                          <Heart className="w-3 h-3" /> 点赞
+                        <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                          <Heart className="w-3.5 h-3.5" /> 点赞
                         </div>
                       </div>
-                      <div className="p-3 rounded-xl bg-secondary/30 text-center">
+                      <div className="p-3.5 rounded-xl bg-secondary/30 text-center">
                         <div className="text-lg font-bold">{selectedComment.replyCount}</div>
-                        <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                          <MessageCircle className="w-3 h-3" /> 回复
+                        <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                          <MessageCircle className="w-3.5 h-3.5" /> 回复
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">标签</h4>
-                      <div className="flex flex-wrap gap-1">
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">标签</h4>
+                      <div className="flex flex-wrap gap-1.5">
                         {selectedComment.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                          <Badge key={tag} variant="outline" className="text-sm">{tag}</Badge>
                         ))}
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">所属集群</h4>
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">所属集群</h4>
                       {(() => {
                         const cluster = clusters.find(cl => cl.id === selectedComment.clusterId);
                         if (!cluster) return null;
                         return (
-                          <div className="p-3 rounded-xl bg-secondary/30 border border-border/30">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cluster.color }} />
-                              <span className="text-xs font-medium">{cluster.label}</span>
-                              <span className="text-xs text-muted-foreground ml-auto">平均杠杆 {cluster.avgLeverageScore}</span>
+                          <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/30">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cluster.color }} />
+                              <span className="text-sm font-medium">{cluster.label}</span>
+                              <span className="text-sm text-muted-foreground ml-auto">平均杠杆 {cluster.avgLeverageScore}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground">{cluster.description}</p>
+                            <p className="text-sm text-muted-foreground">{cluster.description}</p>
                           </div>
                         );
                       })()}
@@ -601,27 +652,27 @@ export default function CommentMapPage() {
 
                     {/* Related comments */}
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">同集群评论</h4>
-                      <div className="space-y-1.5">
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">同集群评论</h4>
+                      <div className="space-y-2">
                         {filteredComments
                           .filter(c => c.clusterId === selectedComment.clusterId && c.id !== selectedComment.id)
                           .slice(0, 3)
                           .map(c => (
                             <div
                               key={c.id}
-                              className="p-2 rounded-lg bg-secondary/20 hover:bg-secondary/40 cursor-pointer transition-colors"
+                              className="p-2.5 rounded-lg bg-secondary/20 hover:bg-secondary/40 cursor-pointer transition-colors"
                               onClick={() => setSelectedComment(c)}
                             >
-                              <div className="flex items-center gap-2 mb-0.5">
+                              <div className="flex items-center gap-2 mb-1">
                                 <span
-                                  className="text-[11px] px-1.5 py-0.5 rounded-full"
+                                  className="text-sm px-2 py-0.5 rounded-full"
                                   style={{ backgroundColor: intentColors[c.intent.primary] + '22', color: intentColors[c.intent.primary] }}
                                 >
                                   {intentLabels[c.intent.primary]}
                                 </span>
-                                <span className="text-[11px] text-brand-cyan ml-auto">杠杆 {c.leverageScore}</span>
+                                <span className="text-sm text-brand-cyan ml-auto">杠杆 {c.leverageScore}</span>
                               </div>
-                              <p className="text-xs text-foreground/60 line-clamp-1">{c.content}</p>
+                              <p className="text-sm text-foreground/70 line-clamp-1">{c.content}</p>
                             </div>
                           ))}
                       </div>
@@ -633,15 +684,15 @@ export default function CommentMapPage() {
                   <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
                     <Filter className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">点击地图节点</p>
-                  <p className="text-xs text-muted-foreground/60">查看评论详情与意图解析</p>
+                  <p className="text-base text-muted-foreground mb-1">点击地图节点</p>
+                  <p className="text-sm text-muted-foreground/60">查看评论详情与意图解析</p>
                 </div>
               )}
 
               {/* Cluster Legend */}
               <div className="mt-4 pt-4 border-t border-border">
-                <h4 className="text-xs font-semibold text-muted-foreground mb-3">集群图例</h4>
-                <div className="space-y-1.5">
+                <h4 className="text-sm font-semibold text-muted-foreground mb-3">集群图例</h4>
+                <div className="space-y-2">
                   {clusters.map(cluster => {
                     const count = clusterFilter
                       ? cluster.id === clusterFilter ? cluster.comments.length : 0
@@ -651,13 +702,13 @@ export default function CommentMapPage() {
                       <button
                         key={cluster.id}
                         onClick={() => setClusterFilter(clusterFilter === cluster.id ? null : cluster.id)}
-                        className={`w-full flex items-center gap-2 p-2 rounded-xl text-left transition-colors ${
+                        className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-colors ${
                           clusterFilter === cluster.id ? 'bg-secondary' : 'hover:bg-secondary/50'
                         }`}
                       >
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cluster.color }} />
-                        <span className="text-xs flex-1">{cluster.label}</span>
-                        <span className="text-xs text-muted-foreground">{count} 条</span>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cluster.color }} />
+                        <span className="text-sm flex-1">{cluster.label}</span>
+                        <span className="text-sm text-muted-foreground">{count} 条</span>
                       </button>
                     );
                   })}

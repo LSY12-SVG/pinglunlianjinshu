@@ -109,7 +109,7 @@ export default function StrategyStudioPage() {
               </div>
               <div className="text-left">
                 <div className="text-sm font-semibold">{config.label}</div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-sm text-muted-foreground/80">
                   {mode === 'conservative' ? '低风险稳健' : mode === 'balanced' ? '中等风险' : '高风险高回报'}
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function StrategyStudioPage() {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold">{activeStrategy.title}</h2>
-                      <p className="text-xs text-muted-foreground">{strategyTypeLabels[activeMode]} · 风格守恒策略</p>
+                      <p className="text-sm text-muted-foreground/80">{strategyTypeLabels[activeMode]} · 风格守恒策略</p>
                     </div>
                   </div>
 
@@ -156,7 +156,7 @@ export default function StrategyStudioPage() {
                         <span className="text-xs font-semibold">风险等级</span>
                       </div>
                       <Progress value={activeStrategy.riskLevel} className="h-2 mb-1" />
-                      <span className="text-[10px] text-muted-foreground">{activeStrategy.riskLevel}%</span>
+                      <span className="text-sm text-muted-foreground/80">{activeStrategy.riskLevel}%</span>
                     </div>
                     <div className="p-4 rounded-2xl bg-secondary/30">
                       <div className="flex items-center gap-2 mb-2">
@@ -164,7 +164,7 @@ export default function StrategyStudioPage() {
                         <span className="text-xs font-semibold">预期影响</span>
                       </div>
                       <Progress value={activeStrategy.estimatedImpact} className="h-2 mb-1" />
-                      <span className="text-[10px] text-muted-foreground">{activeStrategy.estimatedImpact}%</span>
+                      <span className="text-sm text-muted-foreground/80">{activeStrategy.estimatedImpact}%</span>
                     </div>
                   </div>
 
@@ -245,7 +245,7 @@ export default function StrategyStudioPage() {
                               />
                             ))}
                           </motion.div>
-                          <span className="text-xs text-muted-foreground">正在解析评论意图并匹配风格模板...</span>
+                          <span className="text-sm text-muted-foreground">正在解析评论意图并匹配风格模板...</span>
                         </div>
                       </div>
                     </div>
@@ -268,14 +268,14 @@ export default function StrategyStudioPage() {
                               进入脚本工作台 <ArrowRight className="w-3 h-3" />
                             </Button>
                           </Link>
-                          <span className="text-[10px] text-muted-foreground">由 DeepSeek V3 生成</span>
+                          <span className="text-sm text-muted-foreground/70">由 DeepSeek V3 生成</span>
                         </motion.div>
                       )}
                     </motion.div>
                   ) : (
                     <div className="p-4 rounded-2xl bg-secondary/10 text-center">
                       <p className="text-sm text-muted-foreground mb-2">点击"生成大纲"预览风格守恒脚本框架</p>
-                      <p className="text-[10px] text-muted-foreground/60">AI 将基于高杠杆评论生成完整脚本结构</p>
+                      <p className="text-sm text-muted-foreground/60">AI 将基于高杠杆评论生成完整脚本结构</p>
                     </div>
                   )}
                 </div>
@@ -309,7 +309,7 @@ export default function StrategyStudioPage() {
                         >
                           {intentLabels[c.intent.primary]}
                         </span>
-                        <span className="text-[10px] text-muted-foreground ml-auto">杠杆 {c.leverageScore}</span>
+                        <span className="text-sm text-muted-foreground/80 ml-auto">杠杆 {c.leverageScore}</span>
                       </div>
                       <p className="text-xs text-foreground/70 line-clamp-2">{c.content}</p>
                     </motion.div>

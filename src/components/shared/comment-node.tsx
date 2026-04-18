@@ -24,7 +24,7 @@ export function CommentNode({
   x,
   y,
 }: CommentNodeProps) {
-  const nodeSize = Math.max(30, Math.min(60, comment.leverageScore * 0.6));
+  const nodeSize = Math.max(36, Math.min(70, comment.leverageScore * 0.7));
   const intentColor = intentColors[comment.intent.primary] || '#7B61FF';
 
   return (
@@ -52,33 +52,33 @@ export function CommentNode({
         y={y}
         textAnchor="middle"
         dominantBaseline="central"
-        className="fill-foreground text-[10px] font-medium pointer-events-none select-none"
+        className="fill-foreground text-sm font-medium pointer-events-none select-none"
       >
         {comment.author.slice(0, 2)}
       </text>
 
       {(isHovered || isSelected) && (
         <foreignObject
-          x={x - 120}
-          y={y - nodeSize / 2 - 100}
-          width={240}
-          height={90}
+          x={x - 140}
+          y={y - nodeSize / 2 - 120}
+          width={280}
+          height={110}
           className="pointer-events-none"
         >
-          <div className="bg-card/95 backdrop-blur-md border border-border rounded-2xl p-3 shadow-xl">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="bg-card/95 backdrop-blur-md border border-border rounded-2xl p-4 shadow-xl">
+            <div className="flex items-center gap-2 mb-1.5">
               <span
-                className="text-[10px] px-2 py-0.5 rounded-full"
+                className="text-sm px-2.5 py-0.5 rounded-full font-medium"
                 style={{ backgroundColor: intentColor + '22', color: intentColor }}
               >
                 {intentLabels[comment.intent.primary]}
               </span>
-              <span className="text-[10px] text-muted-foreground">杠杆 {comment.leverageScore}</span>
+              <span className="text-sm text-muted-foreground">杠杆 {comment.leverageScore}</span>
             </div>
-            <p className="text-xs text-foreground line-clamp-2">{comment.content}</p>
-            <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{comment.likes}</span>
-              <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{comment.replyCount}</span>
+            <p className="text-sm text-foreground line-clamp-2 leading-relaxed">{comment.content}</p>
+            <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{comment.likes}</span>
+              <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" />{comment.replyCount}</span>
             </div>
           </div>
         </foreignObject>

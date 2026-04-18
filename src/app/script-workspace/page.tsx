@@ -142,7 +142,7 @@ export default function ScriptWorkspacePage() {
             <div className="p-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold">{mockScript.title}</h2>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-sm text-muted-foreground/80 mt-0.5">
                   总字数 {totalWords} · {segments.length} 段 · 基于激进版策略生成
                 </p>
               </div>
@@ -150,7 +150,7 @@ export default function ScriptWorkspacePage() {
                 {Object.entries(segmentTypeLabels).map(([key, label]) => (
                   <div key={key} className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: segmentColors[key] }} />
-                    <span className="text-[10px] text-muted-foreground">{label}</span>
+                    <span className="text-sm text-muted-foreground/80">{label}</span>
                   </div>
                 ))}
               </div>
@@ -176,7 +176,7 @@ export default function ScriptWorkspacePage() {
                     >
                       {segmentTypeLabels[segment.type]}
                     </Badge>
-                    <span className="text-[10px] text-muted-foreground ml-auto">{segment.wordCount} 字</span>
+                    <span className="text-sm text-muted-foreground/80 ml-auto">{segment.wordCount} 字</span>
                     {segment.sourceComments.length > 0 && (
                       <div className="flex items-center gap-1">
                         <Link2 className="w-3 h-3 text-muted-foreground" />

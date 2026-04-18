@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const { prompt, systemPrompt } = await req.json();
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
-  const baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+  const baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.siliconflow.cn';
 
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500 });
